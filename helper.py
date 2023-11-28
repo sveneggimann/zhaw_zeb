@@ -5,6 +5,10 @@ import random
 import pandas as pd
 import geopandas as gpd
 import json
+import math
+import rtree 
+import rasterio
+from rasterio.merge import merge as rio_merge
 
 import haversine as hs   
 from haversine import Unit
@@ -190,9 +194,6 @@ def calculate_metrics(gdf):
         minx = geom.bounds[0]
         maxy = geom.bounds[3]
         miny = geom.bounds[1]
-        #widht = maxx - minx # maxx - minx
-        #length = maxy - miny # maxy - miny
-
         length = hs.haversine((miny, maxx), (miny, minx), unit=Unit.METERS) # (lat, lon)
         width = hs.haversine((maxy, minx), (miny, minx), unit=Unit.METERS)
 
@@ -210,4 +211,75 @@ def calculate_metrics(gdf):
 
 def getFeatures(gdf):
     """Function to parse features from GeoDataFrame in such a manner that rasterio wants them"""
-    return [json.loads(gdf.to_json())['features'][0]['geometry']
+    nr_of_entries = gdf.shape[0]
+    list_with_elements = []
+    json_laoded = json.loads(gdf.to_json())
+
+    for i in range(nr_of_entries):
+        list_with_elements.append(json_laoded['features'][i]['geometry'])
+    return list_with_elements
+    #return [json.loads(gdf.to_json())['features'][0]['geometry']]
+
+def merge_tiffs(input_paths, output_path, nodata_value):
+    """
+    https://gis.stackexchange.com/questions/311837/how-to-mosaic-images-with-different-crs-with-rasterio
+    """
+    # Open the input raster files
+    src_files_to_mosaic = [rasterio.open(path) for path in input_paths]
+
+    # Merge the rasters
+    mosaic, out_trans = rio_merge(src_files_to_mosaic, nodata=nodata_value)
+
+    # Update the metadata of the mosaic raster
+    out_meta = src_files_to_mosaic[0].meta.copy()
+    out_meta.update({
+        'driver': 'GTiff',
+        'height': mosaic.shape[1],
+        'width': mosaic.shape[2],
+        'transform': out_trans,
+        'nodata': nodata_value
+    })
+
+    # Create the output raster file
+    with rasterio.open(output_path, 'w', **out_meta) as dest:
+        dest.write(mosaic)
+
+def assign_archetype(
+        build_geom,
+        h,
+        assumed_height_floor=3  # Assume height per floor of 3m
+        ):
+    nf_of_floors = math.ceil(h/assumed_height_floor) # Round up
+
+    if nf_of_floors > 17:
+        archetype = 'high_rise_tower'
+    elif nf_of_floors > 6 and nf_of_floors <= 17:
+        archetype = 'high_rise_slab'
+    elif nf_of_floors >= 3 and nf_of_floors <= 6:
+        archetype = 'low_rise_apartment'
+    elif nf_of_floors <3:
+        archetype = 'terrace_house'
+    else:
+        archetype = 'not_classified'
+
+    return archetype
+
+def build_rTree(df, index_type='iloc'):
+    """Buid rTree
+
+    iloc: rTree gets built with ilocation
+    loc: rTree gets built with index
+    """
+    rTree = rtree.index.Index()
+
+    if index_type == 'iloc':
+        for pos, poly in enumerate(df.geometry):
+            rTree.insert(pos, poly.bounds)
+    elif index_type == 'loc':
+        for pos in df.index:
+            poly = df.loc[pos].geometry
+            rTree.insert(pos, poly.bounds)
+    else:
+        raise Exception("Wrong index_type defined")
+
+    return rTree

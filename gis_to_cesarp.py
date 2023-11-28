@@ -16,27 +16,23 @@ print("imports loaded")
 main_path = "C:/Users/eggv/OneDrive - ZHAW/ZBP_shared/1_Research/1015_ZEB_China_Impact_Study/04_Working_phase/geometry_collection/"
 path_shape = os.path.join(main_path, "test_buildings.shp")
 path_out = os.path.join(main_path, "_results")
+path_processed_buildings = os.path.join(path_main_data, "buildings_osm")
 
 # Automated path
 path_buildinfo = os.path.join(path_out, "BuildingInformation.csv")
 path_shp = os.path.join(path_out, "buildings_to_simulate.shp")
 path_csv = os.path.join(path_out, "SiteVertices.csv")
 
-
-
-
-
 # Read data
 data = gpd.read_file(path_shape)
 
 data = hp.calculate_metrics(data)
-#data.to_file("C:/Users/eggv/OneDrive - ZHAW/Sven/_scrap/test.shp")
 
 # Conver to hong kong coordinate system
 data = data.to_crs(2326)
 
 # --------------------------------------------------------------------------------
-# (a) Assign building archetype (e.g. using rule-based classification)
+# (a) Assign building specifications (e.g. using rule-based classification)
 # --------------------------------------------------------------------------------
 data['ORIG_FID'] = range(data.shape[0])
 data['levels_f'] = 2
