@@ -128,6 +128,7 @@ for region in regions:
     shapes = hp.getFeatures(all_osm_region_new_crs)
 
     tiff_h = []
+    max_hs = []
     archetypes = []
 
     with rasterio.open(path_heights) as src:
@@ -152,24 +153,31 @@ for region in regions:
                 # Round building height
                 mean_h_round = np.round(mean_h, 0)
 
+                max_h = np.max(all_pixel_h_list)
+    
                 if np.isnan(mean_h_round):
                     mean_h_round = -9999
-            
+                
+                if np.isnan(max_h):
+                    max_h = -9999
             except:
                 print("Building doesn't intersect")
                 mean_h_round = -9999
+                max_h = -9999
 
-            # Classify building archetype
-            archetpye = hp.assign_archetype(build_geom, mean_h_round)
+            # Classify building archetype Note: Frist classification 
+            #archetpye = hp.classify_archetype(build_geom, mean_h_round)
     
-            archetypes.append(archetpye)
+            #archetypes.append(archetpye)
             tiff_h.append(mean_h_round)
+            max_hs.append(max_h)
 
             progress_par.next()
         progress_par.finish()
 
-    all_osm_region['archetype'] = archetypes
+    #all_osm_region['archetype'] = archetypes
     all_osm_region['tiff_h'] = tiff_h
+    all_osm_region['max_h'] = max_hs
 
     all_osm_region.to_file(path_buildings.replace('.geojson', '_h.geojson'))
     print("finished region: {}".format(region))

@@ -244,23 +244,36 @@ def merge_tiffs(input_paths, output_path, nodata_value):
     with rasterio.open(output_path, 'w', **out_meta) as dest:
         dest.write(mosaic)
 
-def assign_archetype(
+def classify_archetype(
         build_geom,
         h,
-        assumed_height_floor=3  # Assume height per floor of 3m
+        assumed_height_floor=3,  # Assume height per floor of 3m
+        max_footprint_area_residential=3000 # [m]
         ):
+    """Note: with 17 as the minimum number of floor levels for the high-rise-tower, this value gets assigned very rarely with a hight of floor level of
+    3 meters.
+    Consider lowering this value.
+    3m is also assumed in other papers: Deep learning-based building height mapping using Sentinel-1 and Sentienl-2 data (for buildingy >33 floors,
+    even an average height of 5 meters is assumed)
+    """
+    treshold_floor_levels_high_rise = 17 # [floor level]
     nf_of_floors = math.ceil(h/assumed_height_floor) # Round up
 
-    if nf_of_floors > 17:
-        archetype = 'high_rise_tower'
-    elif nf_of_floors > 6 and nf_of_floors <= 17:
-        archetype = 'high_rise_slab'
-    elif nf_of_floors >= 3 and nf_of_floors <= 6:
-        archetype = 'low_rise_apartment'
-    elif nf_of_floors <3:
-        archetype = 'terrace_house'
+    footprint_area = build_geom.area
+    
+    if footprint_area > max_footprint_area_residential:
+        archetype = 'non_residential'
     else:
-        archetype = 'not_classified'
+        if nf_of_floors > 17:
+            archetype = 'high_rise_tower'
+        elif nf_of_floors > 6 and nf_of_floors <= 17:
+            archetype = 'high_rise_slab'
+        elif nf_of_floors >= 3 and nf_of_floors <= 6:
+            archetype = 'low_rise_apartment'
+        elif nf_of_floors <3:
+            archetype = 'terrace_house'
+        else:
+            archetype = 'not_classified'
 
     return archetype
 
