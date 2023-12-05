@@ -1,10 +1,9 @@
 """
+(old - This script is now integrated in "generate_blocks.py")
+
 Load shapefile from china area and convert to CESAR-P input files
 
-# Input crs: EPSG: 4226  Hong kong: 2326
-https://github.com/Turbo87/utm
 """
-
 import os
 import geopandas as gpd
 

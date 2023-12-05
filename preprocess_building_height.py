@@ -1,7 +1,8 @@
 """
-Load chinese regions, corresponding openstreetmap data and assign building heights.
+Load Chinese regions, corresponding openstreetmap data and assign building heights through spatial overlay.
 
-Info on rasterio/code:
+
+Used code-snipplets / online-help:
 - merge tif: https://trac.osgeo.org/gdal/wiki/CatalogueForQIS
 - masking tifs: https://rasterio.readthedocs.io/en/latest/topics/masking-by-shapefile.html 
 - https://automating-gis-processes.github.io/CSC18/lessons/L6/raster-mosaic.html
@@ -23,7 +24,7 @@ from progress.bar import Bar
 
 import helper as hp
 
-test_path = "C:/Users/eggv/OneDrive - ZHAW/ZBP_shared/1_Research/1015_ZEB_China_Impact_Study/02_Data/CH10/test/small.tif"
+# This is a required preprocessing step if a city is covered by several tifs that need to be merged
 
 pre_processing_merge = False # Only once to merge tifs
 
@@ -44,8 +45,7 @@ regions = [
     "Harbin",
     "Beijing",
     "Shanghai",
-    "Shenzen"
-]
+    "Shenzen"]
 
 # Load regions
 regions_1 = gpd.read_file(path_china_regions_1)
@@ -163,70 +163,18 @@ for region in regions:
             except:
                 print("Building doesn't intersect")
                 mean_h_round = -9999
-                max_h = -9999
+                max_h = -9999           # Note: Dummy height values are asssigned
 
-            # Classify building archetype Note: Frist classification 
-            #archetpye = hp.classify_archetype(build_geom, mean_h_round)
-    
             #archetypes.append(archetpye)
             tiff_h.append(mean_h_round)
             max_hs.append(max_h)
 
             progress_par.next()
         progress_par.finish()
-
-    #all_osm_region['archetype'] = archetypes
     all_osm_region['tiff_h'] = tiff_h
     all_osm_region['max_h'] = max_hs
 
     all_osm_region.to_file(path_buildings.replace('.geojson', '_h.geojson'))
     print("finished region: {}".format(region))
-
-    
-
-
-
-    
-    '''
-from osgeo import gdal
-filepath = test_path
-
-# Open the file: https://automating-gis-processes.github.io/2016/Lesson7-read-raster.html
-raster = gdal.Open(filepath)
-
-# Check type of the variable 'raster'
-type(raster)
-
-print(raster.GetProjection())
-print(raster.RasterXSize)
-print(raster.RasterYSize)
-print(raster.RasterCount)
-print(raster.GetMetadata())
-band = raster.GetRasterBand(1)
-print(type(band))
-print(gdal.GetDataTypeName(band.DataType))
-
-# https://automating-gis-processes.github.io/2016/Lesson7-read-raster-array.html
-rasterArray = raster.ReadAsArray()
-nodata = band.GetNoDataValue()
-rasterArray = np.ma.masked_equal(rasterArray, nodata)
-type(rasterArray)
-
-# Check again array statistics
-rasterArray.min()
-'''
-
-##from osgeo import gdal
-#dataset = gdal.Open(test_path, gdal.GA_ReadOnly)
-#for x in range(1, dataset.RasterCount + 1):
-#    band = dataset.GetRasterBand(x)
-#    array = band.ReadAsArray()
-#with rasterio.open(test_path, mode="r") as src:
-#    data_masked = src.read(masked=True)
-#    nodata_value = src.nodata
-#data = data_masked.filled(nodata_value) 
-
-#src = rasterio.open(test_path)
-#msk = src.read_masks(1)
 
 print("---- finished script ------")
