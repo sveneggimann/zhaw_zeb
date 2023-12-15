@@ -18,6 +18,50 @@ from haversine import Unit
 
 from shapely.geometry import Polygon
 
+import os
+import shutil
+
+def create_folder(path_folder, name_subfolder=None):
+    """Creates folder or subfolder
+
+    Arguments
+    ----------
+    path : str
+        Path to folder
+    folder_name : str, default=None
+        Name of subfolder to create
+    """
+    if not name_subfolder:
+        if not os.path.exists(path_folder):
+            os.makedirs(path_folder)
+    else:
+        path_result_subolder = os.path.join(path_folder, name_subfolder)
+        if not os.path.exists(path_result_subolder):
+            os.makedirs(path_result_subolder)
+
+def delete_folder(path_folder):
+    """Delete folder or subfolder
+
+    Arguments
+    ----------
+    path : str
+        Path to folder
+    folder_name : str, default=None
+        Name of subfolder to create
+    """
+    if os.path.exists(path_folder):
+        shutil.rmtree(path_folder)
+
+
+def calculate_mean(df, var_names, name_cnt):
+    """Calculate mean based on number of buildings
+    """
+    for var_name in var_names:
+        df.loc[df[name_cnt] == 0, var_name] = 0   # Set to zero wheterver no buildings
+        df.loc[df[name_cnt] != 0, var_name] = df[var_name] / df[name_cnt] # Calculate mean
+
+    return df
+
 def age_classes_lookup():
     """Defined GWR age classes
     GBAUP

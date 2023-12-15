@@ -25,7 +25,7 @@ path_blocks = "C:/Users/eggv/OneDrive - ZHAW/ZBP_shared/1_Research/1015_ZEB_Chin
 path_result = "C:/Users/eggv/OneDrive - ZHAW/ZBP_shared/1_Research/1015_ZEB_China_Impact_Study/00_results" # Output_path 
 
 # Write out CESAR-P
-write_out_cesar_p = False
+write_out_cesar_p = True
 
 # Assumptions
 mean_h_assumption = 3 # [m]
