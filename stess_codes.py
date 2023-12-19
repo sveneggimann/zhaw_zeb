@@ -54,12 +54,14 @@ config.read(path_ini_file)
 target_crs = '21781'
 
 download_raw = False
-extract_fitting = True
+extract_fitting = False
 polygonzie = False
 
-merge_and_street_clip = False
+merge_and_street_clip = True
 
 cantons_to_pick = ['SG', 'ZH']
+#indiv = ['3342', '54', '55', '91']
+#indiv = ['55']
 
 if download_raw:
 
@@ -73,6 +75,13 @@ if download_raw:
         for line in data: # files are iterable
 
             if canton_to_pick in line:
+                #found = False
+                #for i in indiv:
+                #    if i in line:
+                #        found = True
+                #if not found:
+                #    continue
+
                 line_split = line.split(" ")
                 url = line_split[0]
                 file_name = url.split("/")[-1]
@@ -132,11 +141,6 @@ if extract_fitting:
                     if f.endswith("ili"):
                         path_ili_file = os.path.join(path_temp, "de", f)
                 #path_ili_file = os.path.join(path_temp, "de", "DM01AVCH24LV95D.ili")
-                print("----")
-                print(path_temp_interlis)
-                print(path_itf_file)
-                print(path_ili_file)
-
                 path_temp_interlis = path_temp_interlis.replace("\\","/")
                 path_itf_file = path_itf_file.replace("\\","/")
                 path_ili_file = path_ili_file.replace("\\","/")
@@ -145,43 +149,19 @@ if extract_fitting:
                 path_itf_file = path_itf_file.replace("/","\\")
                 path_ili_file = path_ili_file.replace("/","\\")
 
-                #command = [
-                #    'ogr2ogr',
-                #    "-f",
-                #    '"ESRI Shapefile"',
-                #    path_temp_interlis,
-                #    path_itf_file,
-                #    path_ili_file]
+
                 #Info: https://giswiki.hsr.ch/HowTo_OGR2OGR#INTERLIS_2-Reader_und_-Writer --Note: See interlis info 1
                 args = [
                     'ogr2ogr',
                     '-f',
                     'ESRI Shapefile',
-                    'C:\\Users\\eggv\\_temp\\_temp\\extract',
+                    #'C:\\Users\\eggv\\_temp\\_temp\\extract',
+                    '{}'.format(path_temp_interlis),
                     '{},{}'.format(
                         path_itf_file,
                         path_ili_file)]
-                
-                #args2 = [
-                #    'ogr2ogr',
-                #    '-f',
-                #    '"ESRI Shapefile"',
-                #    'C:/Users/eggv/_temp/_temp/extract',
-                #    "C:/Users/eggv/_temp/_temp/de/0100.itf,C:/Users/eggv/_temp/_temp/de/DM01AVCH24LV95D.ili"]
 
-                #t = 'ogr2ogr -f "ESRI Shapefile" "C:/Users/eggv/_temp/_temp/extract" "C:/Users/eggv/_temp/_temp/de/0100.itf,C:/Users/eggv/_temp/_temp/de/DM01AVCH24LV95D.ili"'
-
-                #befehl = 'ogr2ogr -f "ESRI Shapefile" C:\\Users\\eggv\\_temp\\_temp\\extract {},{}'.format(path_itf_file, path_ili_file)
-                #subprocess.run(command, shell=True, capture_output=False, text=True)
-                #subprocess.check_call(command2)
-                #args = ["{}/polygonize.sh".format(config['PATHS']['path_script']), INPUT, OUTPUT, config['PATHS']['temp_path']]
-                #print("----1")
-                #exec(befehl)
-                print("----2")
                 subprocess.run(args)
-                #print("----3")
-                #subprocess.call(args)
-                prnt("fff")
 
             # Files to keep Liegenschaften__Liegenschaft_Geometrie.shp
             files_to_keep = [
@@ -208,7 +188,7 @@ if polygonzie:
 
     hp.create_folder(config['PATHS']['path_polygonized'])
     for folder in os.listdir(config['PATHS']['path_zipped']):
-
+        
         print("Folder to polygonize: " + str(folder))
         out_path = os.path.join(config['PATHS']['path_polygonized'], "{}.shp".format(folder))
         if os.path.exists(out_path):
@@ -217,7 +197,11 @@ if polygonzie:
             file_name = 'Liegenschaften__Liegenschaft_Geometrie.shp'
 
             gdf = gpd.read_file(os.path.join(config['PATHS']['path_zipped'], folder, file_name))
-            geometries = []
+
+            # New: Add explode
+            gdf = gdf.explode()
+            geometries = gdf.geometry.tolist()
+            '''geometries = []
             gdf_intersecting = unary_union(gdf.geometry)
 
             if gdf_intersecting.type == 'MultiLineString':
@@ -230,7 +214,7 @@ if polygonzie:
                         geometries.append(wkt.loads(line.wkt))
 
             if gdf_intersecting.type == 'LineString':
-                geometries.append(gdf_intersecting)
+                geometries.append(gdf_intersecting)'''
 
             merged = linemerge(geometries)
             borders = unary_union(merged)
@@ -310,7 +294,8 @@ if merge_and_street_clip:
                 gdf = gdf.drop(index=index_to_delete)
 
             # Merge
-            merged_parzellen = merged_parzellen.append(gdf)
+            #merged_parzellen = merged_parzellen.append(gdf)
+            merged_parzellen = pd.concat([merged_parzellen, gdf])
 
     # Reset index
     merged_parzellen = merged_parzellen.reset_index(drop=True)
